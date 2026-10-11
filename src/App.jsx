@@ -10,6 +10,7 @@ const [locationLoading, setLocationLoading] = useState(false);
 const [emergencyType, setEmergencyType] = useState("");
 const [contactName, setContactName] = useState("");
 const [contactPhone, setContactPhone] = useState("");
+const [showAlertPreview, setShowAlertPreview] = useState(false);
   const timerRef = useRef(null);
   const countdownRef = useRef(null);
 
@@ -412,7 +413,127 @@ const [contactPhone, setContactPhone] = useState("");
   )}
 
 </div>
+<button
+  className="alert-preview-button"
+  onClick={() => setShowAlertPreview(true)}
+  disabled={!location || !emergencyType || !contactName || !contactPhone}
+>
+  🚨 PREVIEW EMERGENCY ALERT
+</button>
+{showAlertPreview && (
+  <div className="alert-preview">
 
+    <h3>🚨 Emergency Alert Preview</h3>
+
+    <p>
+      <strong>Emergency Type:</strong> {emergencyType}
+    </p>
+
+    <p>
+      <strong>Contact:</strong> {contactName}
+    </p>
+
+    <p>
+      <strong>Phone:</strong> {contactPhone}
+    </p>
+
+    {location && (
+      <>
+        <p>
+          <strong>Latitude:</strong>{" "}
+          {location.latitude.toFixed(6)}
+        </p>
+
+        <p>
+          <strong>Longitude:</strong>{" "}
+          {location.longitude.toFixed(6)}
+        </p>
+
+        <p>
+          <strong>GPS Accuracy:</strong>{" "}
+          {Math.round(location.accuracy)} meters
+        </p>
+
+        <a
+          href={`https://www.google.com/maps?q=${location.latitude},${location.longitude}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          🗺️ Open Emergency Location
+        </a>
+      </>
+    )}
+
+    <div className="alert-preview-message">
+      🚨 EMERGENCY! I need medical assistance.
+      <br />
+      Emergency Type: {emergencyType}
+      <br />
+      My current location is attached above.
+    </div>
+
+    <button
+      className="close-preview-button"
+      onClick={() => setShowAlertPreview(false)}
+    >
+      CLOSE PREVIEW
+    </button>
+
+  </div>
+)}
+{showAlertPreview && location && (
+  <div className="alert-preview">
+
+    <h3>🚨 LifeLink Emergency Alert</h3>
+
+    <div className="alert-item">
+      <strong>Emergency Type</strong>
+      <p>{emergencyType}</p>
+    </div>
+
+    <div className="alert-item">
+      <strong>📍 Location</strong>
+      <p>
+        Latitude: {location.latitude.toFixed(6)}
+        <br />
+        Longitude: {location.longitude.toFixed(6)}
+        <br />
+        Accuracy: {Math.round(location.accuracy)} meters
+      </p>
+    </div>
+
+    <a
+      className="maps-button"
+      href={`https://www.google.com/maps?q=${location.latitude},${location.longitude}`}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      🗺️ OPEN LOCATION IN GOOGLE MAPS
+    </a>
+
+    <div className="alert-item">
+      <strong>👨‍👩‍👧 Emergency Contact</strong>
+      <p>
+        Name: {contactName}
+        <br />
+        Phone: {contactPhone}
+      </p>
+    </div>
+
+    <div className="alert-warning">
+      ⚠️ This is an emergency alert preview.
+      No message has been sent.
+    </div>
+
+    <button
+      className="close-preview-button"
+      onClick={() => setShowAlertPreview(false)}
+    >
+      CLOSE PREVIEW
+    </button>
+
+  </div>
+)}
 {location && (
   <a
     className="maps-button"
