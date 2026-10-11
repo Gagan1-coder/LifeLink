@@ -178,9 +178,7 @@ async def run_emergency_agent_coordination(
 
     # Step 6: Formulate AI Decision Synthesis
     primary_hosp = hospitals[0] if hospitals else None
-    nav_link = None
-    if primary_hosp and latitude is not None and longitude is not None:
-        nav_link = AgentToolExecutor.get_navigation_link(latitude, longitude, primary_hosp["latitude"], primary_hosp["longitude"])
+    nav_link = primary_hosp.get("directions_url") if primary_hosp else None
 
     synthesis = {
         "coordination_id": f"coord_{int(datetime.datetime.now().timestamp())}",

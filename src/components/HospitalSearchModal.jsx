@@ -1,8 +1,11 @@
-// src/components/HospitalSearchModal.jsx
-// Hospital & Emergency Healthcare Discovery for LifeLink AI
-
 import { useState, useEffect } from "react";
 import { fetchNearbyHospitals } from "../services/api";
+import {
+  isHospitalLocationVerified,
+  getHospitalLocationUrl,
+  getHospitalDirectionsUrl,
+  getResolveHospitalUrl,
+} from "../services/locationService";
 
 export default function HospitalSearchModal({ isOpen, onClose, location, emergencyType }) {
   const [hospitals, setHospitals] = useState([]);
@@ -74,48 +77,89 @@ export default function HospitalSearchModal({ isOpen, onClose, location, emergen
           ) : hospitals.length === 0 ? (
             <p className="empty-text">No hospitals found matching criteria.</p>
           ) : (
-            hospitals.map((hosp) => (
-              <div key={hosp.id} className={`hospital-item-card ${hosp.is_emergency_priority ? "priority-match" : ""}`}>
-                <div className="hospital-item-header">
-                  <div>
-                    <h3>{hosp.name}</h3>
-                    <p className="hospital-category">{hosp.category}</p>
-                  </div>
-                  {hosp.distance_km != null && (
-                    <div className="hospital-dist-tag">
-                      🚗 <strong>{hosp.distance_km} km</strong> away
+            hospitals.map((hosp) => {
+              const verified = isHospitalLocationVerified(hosp);
+              const locationUrl = getHospitalLocationUrl(hosp) || hosp.location_url;
+              const directionsUrl = getHospitalDirectionsUrl(hosp, location?.latitude, location?.longitude) || hosp.directions_url;
+              const resolveUrl = getResolveHospitalUrl(hosp) || hosp.resolve_url;
+
+              return (
+                <div key={hosp.id} className={`hospital-item-card ${hosp.is_emergency_priority ? "priority-match" : ""}`}>
+                  <div className="hospital-item-header">
+                    <div>
+                      <h3>{hosp.name}</h3>
+                      <p className="hospital-category">{hosp.category}</p>
                     </div>
-                  )}
-                </div>
+                    {hosp.distance_km != null && (
+                      <div className="hospital-dist-tag">
+                        🚗 <strong>{hosp.distance_km} km</strong> away
+                      </div>
+                    )}
+                  </div>
 
-                <p className="hospital-address">📍 {hosp.address}</p>
+                  <p className="hospital-address">📍 {hosp.address}</p>
 
-                <div className="hospital-badges">
-                  {hosp.has_emergency_ward && <span className="badge-alert">24/7 Emergency Ward</span>}
-                  {hosp.icu_available && <span className="badge-info">ICU Available</span>}
-                  {hosp.blood_bank && <span className="badge-warning">Blood Bank</span>}
-                  {hosp.verified && <span className="badge-verified">✓ Verified Facility</span>}
-                </div>
+                  <div className="hospital-badges">
+                    {hosp.has_emergency_ward && <span className="badge-alert">24/7 Emergency Ward</span>}
+                    {hosp.icu_available && <span className="badge-info">ICU Available</span>}
+                    {hosp.blood_bank && <span className="badge-warning">Blood Bank</span>}
+                    {verified ? (
+                      <span className="badge-verified">✓ Location Verified</span>
+                    ) : (
+                      <span className="badge-warning">⚠️ Location Pending</span>
+                    )}
+                  </div>
 
-                <div className="specialties-row">
-                  <strong>Key Services:</strong> {hosp.specialties.join(" • ")}
-                </div>
+                  <div className="specialties-row">
+                    <strong>Key Services:</strong> {hosp.specialties?.join(" • ")}
+                  </div>
 
-                <div className="hospital-actions-row">
-                  <a href={`tel:${hosp.emergency_phone.split("/")[0].trim()}`} className="btn-call-hospital">
-                    📞 Call Emergency ({hosp.emergency_phone})
-                  </a>
-                  <a
-                    href={hosp.directions_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-hospital-maps"
-                  >
-                    🗺️ Get Directions in Maps
-                  </a>
+                  <div className="hospital-actions-row">
+                    {hosp.emergency_phone && (
+                      <a href={`tel:${hosp.emergency_phone.split("/")[0].trim()}`} className="btn-call-hospital">
+                        📞 Call Emergency ({hosp.emergency_phone})
+                      </a>
+                    )}
+
+                    {verified ? (
+                      <>
+                        <a
+                          href={locationUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-view-hospital-location"
+                          title="View exact hospital pin on Google Maps"
+                        >
+                          📍 View Hospital Location
+                        </a>
+                        <a
+                          href={directionsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-hospital-maps"
+                          title="Get turn-by-turn directions to this hospital"
+                        >
+                          🗺️ Get Directions in Maps
+                        </a>
+                      </>
+                    ) : (
+                      <div className="unverified-hospital-notice">
+                        <span className="unverified-badge">⚠️ Hospital location not verified</span>
+                        <a
+                          href={resolveUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-resolve-hospital"
+                          title="Search on Google Maps to verify hospital record"
+                        >
+                          🔍 Resolve Hospital Record
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

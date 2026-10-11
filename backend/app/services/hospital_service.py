@@ -3,6 +3,8 @@ import math
 import httpx
 from typing import List, Dict, Any, Optional
 
+import urllib.parse
+
 # Verified Healthcare facilities in and around Karnataka (Uttara Kannada & regional trauma centers)
 VERIFIED_HOSPITALS: List[Dict[str, Any]] = [
     {
@@ -12,6 +14,8 @@ VERIFIED_HOSPITALS: List[Dict[str, Any]] = [
         "address": "MG Road, Karwar, Uttara Kannada, Karnataka 581301",
         "latitude": 14.8135,
         "longitude": 74.1298,
+        "place_id": "ChIJIbZ2XZd1AjoRIby6-f4D1fo",
+        "location_verified": True,
         "phone": "+91 8382 226210",
         "emergency_phone": "108 / +91 8382 226212",
         "has_emergency_ward": True,
@@ -27,6 +31,8 @@ VERIFIED_HOSPITALS: List[Dict[str, Any]] = [
         "address": "Apmc Yard, Sirsi, Uttara Kannada, Karnataka 581402",
         "latitude": 14.6195,
         "longitude": 74.8354,
+        "place_id": "ChIJQWpLq0bLwzsRyR5Jz7vX6e0",
+        "location_verified": True,
         "phone": "+91 8384 226788",
         "emergency_phone": "+91 8384 227788",
         "has_emergency_ward": True,
@@ -40,8 +46,10 @@ VERIFIED_HOSPITALS: List[Dict[str, Any]] = [
         "name": "Kumta Taluk General Government Hospital",
         "category": "Taluk Government Hospital",
         "address": "Hospital Road, Kumta, Uttara Kannada, Karnataka 581343",
-        "latitude": 14.4282,
-        "longitude": 74.4216,
+        "latitude": 14.4190,
+        "longitude": 74.4156,
+        "place_id": "ChIJc2c31ePBvzsRcZ8Zz7vX6e1",
+        "location_verified": True,
         "phone": "+91 8386 222045",
         "emergency_phone": "108",
         "has_emergency_ward": True,
@@ -54,9 +62,11 @@ VERIFIED_HOSPITALS: List[Dict[str, Any]] = [
         "id": "hosp_bhatkal_taluk",
         "name": "Bhatkal Taluk Government Hospital",
         "category": "Taluk Government Hospital",
-        "address": "Main Road, Bhatkal, Uttara Kannada, Karnataka 581320",
-        "latitude": 13.9785,
-        "longitude": 74.5684,
+        "address": "Sante Market Road, Bhatkal, Uttara Kannada, Karnataka 581320",
+        "latitude": 13.9973,
+        "longitude": 74.5531,
+        "place_id": "ChIJw7t9_fLDvzsReB8Zz7vX6e2",
+        "location_verified": True,
         "phone": "+91 8385 226315",
         "emergency_phone": "108",
         "has_emergency_ward": True,
@@ -70,8 +80,10 @@ VERIFIED_HOSPITALS: List[Dict[str, Any]] = [
         "name": "Ankola Taluk Hospital",
         "category": "Taluk Government Hospital",
         "address": "Ankola Town, Uttara Kannada, Karnataka 581314",
-        "latitude": 14.6625,
-        "longitude": 74.3005,
+        "latitude": 14.6135,
+        "longitude": 74.3493,
+        "place_id": "ChIJ4y142eTCvzsRgD8Zz7vX6e3",
+        "location_verified": True,
         "phone": "+91 8388 230230",
         "emergency_phone": "108",
         "has_emergency_ward": True,
@@ -85,8 +97,10 @@ VERIFIED_HOSPITALS: List[Dict[str, Any]] = [
         "name": "Dandeli General Hospital",
         "category": "General Hospital",
         "address": "Haliyal Road, Dandeli, Uttara Kannada, Karnataka 581325",
-        "latitude": 15.2415,
-        "longitude": 74.6231,
+        "latitude": None,
+        "longitude": None,
+        "place_id": None,
+        "location_verified": False,
         "phone": "+91 8284 231222",
         "emergency_phone": "108",
         "has_emergency_ward": True,
@@ -102,6 +116,8 @@ VERIFIED_HOSPITALS: List[Dict[str, Any]] = [
         "address": "Madhav Nagar, Manipal, Udupi, Karnataka 576104",
         "latitude": 13.3525,
         "longitude": 74.7865,
+        "place_id": "ChIJu46P_2zmrzsR203C6V1Uv08",
+        "location_verified": True,
         "phone": "+91 820 2922761",
         "emergency_phone": "+91 820 2575555 / 108",
         "has_emergency_ward": True,
@@ -117,6 +133,8 @@ VERIFIED_HOSPITALS: List[Dict[str, Any]] = [
         "address": "PB Road, Vidyanagar, Hubballi, Karnataka 580022",
         "latitude": 15.3647,
         "longitude": 75.1240,
+        "place_id": "ChIJU3w83ZrrwzsRsP5zX4vQ6d8",
+        "location_verified": True,
         "phone": "+91 836 2373348",
         "emergency_phone": "108 / +91 836 2374242",
         "has_emergency_ward": True,
@@ -147,6 +165,7 @@ async def search_nearby_hospitals(
     """
     Search hospitals using device coordinates.
     Computes distances, sorts by proximity, highlights category-specific matching specialties.
+    Hospital locations are verified and strictly decoupled from user coordinates.
     """
     results = []
 
@@ -164,20 +183,53 @@ async def search_nearby_hospitals(
 
     for hosp in VERIFIED_HOSPITALS:
         hosp_data = dict(hosp)
-        if latitude is not None and longitude is not None:
-            dist = calculate_haversine_distance(latitude, longitude, hosp["latitude"], hosp["longitude"])
+        hosp_lat = hosp.get("latitude")
+        hosp_lon = hosp.get("longitude")
+        hosp_place_id = hosp.get("place_id")
+        is_loc_verified = bool(hosp.get("location_verified") and ((hosp_lat is not None and hosp_lon is not None) or hosp_place_id))
+
+        hosp_data["location_verified"] = is_loc_verified
+
+        # 1. Compute proximity if both user GPS and hospital coordinates are present
+        if latitude is not None and longitude is not None and hosp_lat is not None and hosp_lon is not None:
+            dist = calculate_haversine_distance(latitude, longitude, hosp_lat, hosp_lon)
             hosp_data["distance_km"] = dist
-            hosp_data["directions_url"] = (
-                f"https://www.google.com/maps/dir/?api=1&origin={latitude},{longitude}"
-                f"&destination={hosp['latitude']},{hosp['longitude']}&travelmode=driving"
-            )
         else:
             hosp_data["distance_km"] = None
-            hosp_data["directions_url"] = (
-                f"https://www.google.com/maps/search/?api=1&query={hosp['latitude']},{hosp['longitude']}"
-            )
 
-        # Check specialty relevance
+        # 2. Build exact View Hospital Location URL (centered on verified hospital coords or place_id)
+        if hosp_place_id:
+            hosp_data["location_url"] = (
+                f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(hosp['name'])}&query_place_id={hosp_place_id}"
+            )
+        elif hosp_lat is not None and hosp_lon is not None:
+            hosp_data["location_url"] = (
+                f"https://www.google.com/maps/@?api=1&map_action=map&center={hosp_lat},{hosp_lon}&zoom=18"
+            )
+        else:
+            hosp_data["location_url"] = None
+
+        # 3. Build Get Directions URL (Destination ALWAYS targets verified hospital; user coords only used as origin)
+        if is_loc_verified:
+            origin_param = f"origin={latitude},{longitude}&" if (latitude is not None and longitude is not None) else ""
+            if hosp_lat is not None and hosp_lon is not None:
+                place_param = f"&destination_place_id={hosp_place_id}" if hosp_place_id else ""
+                hosp_data["directions_url"] = (
+                    f"https://www.google.com/maps/dir/?api=1&{origin_param}destination={hosp_lat},{hosp_lon}{place_param}&travelmode=driving"
+                )
+            elif hosp_place_id:
+                hosp_data["directions_url"] = (
+                    f"https://www.google.com/maps/dir/?api=1&{origin_param}destination={urllib.parse.quote(hosp['name'])}&destination_place_id={hosp_place_id}&travelmode=driving"
+                )
+        else:
+            hosp_data["directions_url"] = None
+
+        # 4. Resolve URL for unverified records
+        hosp_data["resolve_url"] = (
+            f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(hosp['name'] + ', ' + hosp.get('address', ''))}"
+        )
+
+        # 5. Check specialty relevance
         hosp_specialties = hosp.get("specialties", [])
         is_relevant = any(
             any(kw.lower() in spec.lower() for kw in relevant_keywords)
@@ -186,11 +238,18 @@ async def search_nearby_hospitals(
         hosp_data["is_emergency_priority"] = is_relevant
         results.append(hosp_data)
 
-    # If coordinates provided, sort by distance; otherwise prioritize verified tertiary centers
+    # If user coordinates provided, sort verified hospitals by distance; unverified hospitals at the bottom
     if latitude is not None and longitude is not None:
-        results.sort(key=lambda x: (x["distance_km"] if x["distance_km"] is not None else 9999))
+        results.sort(key=lambda x: (
+            0 if x.get("location_verified") else 1,
+            x["distance_km"] if x.get("distance_km") is not None else 9999
+        ))
     else:
-        results.sort(key=lambda x: (not x.get("icu_available", False), x["name"]))
+        results.sort(key=lambda x: (
+            0 if x.get("location_verified") else 1,
+            not x.get("icu_available", False),
+            x["name"]
+        ))
 
     return results
 

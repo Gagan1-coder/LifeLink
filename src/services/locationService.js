@@ -35,7 +35,88 @@ export function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 }
 
 /**
- * Format Google Maps search and direction links
+ * Check if hospital has verified location data
+ */
+export function isHospitalLocationVerified(hospital) {
+  if (!hospital) return false;
+  if (hospital.location_verified === false) return false;
+  return Boolean(
+    (hospital.latitude != null && hospital.longitude != null) ||
+    hospital.place_id
+  );
+}
+
+/**
+ * Format exact Hospital Location URL (centered on verified hospital, NEVER user coordinates)
+ * Requirements 4 & 5:
+ * https://www.google.com/maps/@?api=1&map_action=map&center=HOSPITAL_LATITUDE,HOSPITAL_LONGITUDE&zoom=18
+ * https://www.google.com/maps/search/?api=1&query=HOSPITAL_NAME&query_place_id=GOOGLE_PLACE_ID
+ */
+export function getHospitalLocationUrl(hospital) {
+  if (!hospital) return null;
+
+  // 1. If backend already built a verified location_url, return it
+  if (hospital.location_url) {
+    return hospital.location_url;
+  }
+
+  // 2. Place ID based direct listing (highest fidelity)
+  if (hospital.place_id) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.name)}&query_place_id=${hospital.place_id}`;
+  }
+
+  // 3. Exact coordinates centered at zoom 18
+  if (hospital.latitude != null && hospital.longitude != null) {
+    return `https://www.google.com/maps/@?api=1&map_action=map&center=${hospital.latitude},${hospital.longitude}&zoom=18`;
+  }
+
+  return null;
+}
+
+/**
+ * Format Google Maps driving directions
+ * Requirement 6: Destination MUST always be the selected hospital's verified coordinates or Place ID.
+ * The user's location is used ONLY as the origin.
+ */
+export function getHospitalDirectionsUrl(hospital, originLat = null, originLng = null) {
+  if (!hospital || !isHospitalLocationVerified(hospital)) return null;
+
+  const params = new URLSearchParams();
+  params.append("api", "1");
+  params.append("travelmode", "driving");
+
+  // User location ONLY as origin
+  if (originLat != null && originLng != null) {
+    params.append("origin", `${originLat},${originLng}`);
+  }
+
+  // Hospital verified location as destination
+  if (hospital.latitude != null && hospital.longitude != null) {
+    params.append("destination", `${hospital.latitude},${hospital.longitude}`);
+  } else if (hospital.place_id) {
+    params.append("destination", hospital.name);
+  }
+
+  if (hospital.place_id) {
+    params.append("destination_place_id", hospital.place_id);
+  }
+
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
+
+/**
+ * URL to resolve/verify unverified hospital records on Google Maps
+ * Requirement 7
+ */
+export function getResolveHospitalUrl(hospital) {
+  if (!hospital) return null;
+  if (hospital.resolve_url) return hospital.resolve_url;
+  const q = `${hospital.name}, ${hospital.address || ""}`.trim();
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+}
+
+/**
+ * General purpose Google Maps search and direction links
  */
 export function getDirectionsUrl(destLat, destLng, originLat = null, originLng = null) {
   if (originLat && originLng) {

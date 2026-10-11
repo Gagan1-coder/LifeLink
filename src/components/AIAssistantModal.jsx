@@ -3,6 +3,12 @@
 
 import { useState, useEffect } from "react";
 import { runAICoordination } from "../services/api";
+import {
+  isHospitalLocationVerified,
+  getHospitalLocationUrl,
+  getHospitalDirectionsUrl,
+  getResolveHospitalUrl,
+} from "../services/locationService";
 
 export default function AIAssistantModal({ isOpen, onClose, location, emergencyType, contactName, contactPhone }) {
   const [loading, setLoading] = useState(false);
@@ -83,15 +89,43 @@ export default function AIAssistantModal({ isOpen, onClose, location, emergencyT
                   <a href={`tel:${report.recommended_hospital.phone}`} className="btn-call-hospital">
                     📞 Call Hospital ({report.recommended_hospital.phone})
                   </a>
-                  {report.turn_by_turn_navigation && (
-                    <a
-                      href={report.turn_by_turn_navigation}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-hospital-maps"
-                    >
-                      🗺️ Open Navigation Route
-                    </a>
+
+                  {isHospitalLocationVerified(report.recommended_hospital) ? (
+                    <>
+                      <a
+                        href={getHospitalLocationUrl(report.recommended_hospital)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-view-hospital-location"
+                        title="View exact hospital pin on Google Maps"
+                      >
+                        📍 View Hospital Location
+                      </a>
+
+                      {(getHospitalDirectionsUrl(report.recommended_hospital, location?.latitude, location?.longitude) || report.turn_by_turn_navigation) && (
+                        <a
+                          href={getHospitalDirectionsUrl(report.recommended_hospital, location?.latitude, location?.longitude) || report.turn_by_turn_navigation}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-hospital-maps"
+                          title="Open turn-by-turn navigation"
+                        >
+                          🗺️ Open Navigation Route
+                        </a>
+                      )}
+                    </>
+                  ) : (
+                    <div className="unverified-hospital-notice">
+                      <span className="unverified-badge">⚠️ Hospital location not verified</span>
+                      <a
+                        href={getResolveHospitalUrl(report.recommended_hospital)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-resolve-hospital"
+                      >
+                        🔍 Resolve Hospital Record
+                      </a>
+                    </div>
                   )}
                 </div>
               </div>

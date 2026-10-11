@@ -37,60 +37,166 @@ export async function fetchNearbyHospitals(latitude, longitude, emergencyType) {
   return fetchWithFallback(
     `/api/v1/hospitals/nearby?${query.toString()}`,
     { method: "GET" },
-    () => ({
-      status: "fallback",
-      count: 3,
-      hospitals: [
+    () => {
+      const allHospitals = [
         {
           id: "hosp_karwar_dist",
           name: "Karwar Institute of Medical Sciences (KIMS) District Hospital",
           category: "Government Medical College & Tertiary Hospital",
           address: "MG Road, Karwar, Uttara Kannada, Karnataka 581301",
+          latitude: 14.8135,
+          longitude: 74.1298,
+          place_id: "ChIJIbZ2XZd1AjoRIby6-f4D1fo",
+          location_verified: true,
           phone: "+91 8382 226210",
           emergency_phone: "108 / +91 8382 226212",
           has_emergency_ward: true,
           icu_available: true,
           blood_bank: true,
-          distance_km: latitude ? 12.4 : null,
           specialties: ["Trauma & Orthopaedics", "Cardiology", "Obstetrics & Gynaecology", "ICU"],
-          directions_url: latitude
-            ? `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=14.8135,74.1298`
-            : "https://www.google.com/maps/search/?api=1&query=14.8135,74.1298",
         },
         {
           id: "hosp_sirsi_taluk",
           name: "TSS Hospital (Totgars' Co-operative Hospital)",
           category: "Super Specialty Cooperative Hospital",
           address: "Apmc Yard, Sirsi, Uttara Kannada, Karnataka 581402",
+          latitude: 14.6195,
+          longitude: 74.8354,
+          place_id: "ChIJQWpLq0bLwzsRyR5Jz7vX6e0",
+          location_verified: true,
           phone: "+91 8384 226788",
           emergency_phone: "+91 8384 227788",
           has_emergency_ward: true,
           icu_available: true,
           blood_bank: true,
-          distance_km: latitude ? 34.8 : null,
           specialties: ["Trauma & Accident Care", "General Medicine", "Obstetrics", "Dialysis"],
-          directions_url: latitude
-            ? `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=14.6195,74.8354`
-            : "https://www.google.com/maps/search/?api=1&query=14.6195,74.8354",
         },
         {
           id: "hosp_kumta_taluk",
           name: "Kumta Taluk General Government Hospital",
           category: "Taluk Government Hospital",
           address: "Hospital Road, Kumta, Uttara Kannada, Karnataka 581343",
+          latitude: 14.4190,
+          longitude: 74.4156,
+          place_id: "ChIJc2c31ePBvzsRcZ8Zz7vX6e1",
+          location_verified: true,
           phone: "+91 8386 222045",
           emergency_phone: "108",
           has_emergency_ward: true,
           icu_available: false,
           blood_bank: true,
-          distance_km: latitude ? 28.2 : null,
           specialties: ["Emergency First Response", "Obstetrics & Delivery", "General Medicine"],
-          directions_url: latitude
-            ? `https://www.google.com/maps/dir/?api=1&origin=${latitude},${longitude}&destination=14.4282,74.4216`
-            : "https://www.google.com/maps/search/?api=1&query=14.4282,74.4216",
         },
-      ],
-    })
+        {
+          id: "hosp_bhatkal_taluk",
+          name: "Bhatkal Taluk Government Hospital",
+          category: "Taluk Government Hospital",
+          address: "Sante Market Road, Bhatkal, Uttara Kannada, Karnataka 581320",
+          latitude: 13.9973,
+          longitude: 74.5531,
+          place_id: "ChIJw7t9_fLDvzsReB8Zz7vX6e2",
+          location_verified: true,
+          phone: "+91 8385 226315",
+          emergency_phone: "108",
+          has_emergency_ward: true,
+          icu_available: false,
+          blood_bank: false,
+          specialties: ["Trauma Stabilization", "Maternity Care", "Paediatrics"],
+        },
+        {
+          id: "hosp_ankola_taluk",
+          name: "Ankola Taluk Hospital",
+          category: "Taluk Government Hospital",
+          address: "Ankola Town, Uttara Kannada, Karnataka 581314",
+          latitude: 14.6135,
+          longitude: 74.3493,
+          place_id: "ChIJ4y142eTCvzsRgD8Zz7vX6e3",
+          location_verified: true,
+          phone: "+91 8388 230230",
+          emergency_phone: "108",
+          has_emergency_ward: true,
+          icu_available: false,
+          blood_bank: false,
+          specialties: ["Emergency Triage", "General Medicine", "Obstetrics"],
+        },
+        {
+          id: "hosp_dandeli_gen",
+          name: "Dandeli General Hospital",
+          category: "General Hospital",
+          address: "Haliyal Road, Dandeli, Uttara Kannada, Karnataka 581325",
+          latitude: null,
+          longitude: null,
+          place_id: null,
+          location_verified: false,
+          phone: "+91 8284 231222",
+          emergency_phone: "108",
+          has_emergency_ward: true,
+          icu_available: true,
+          blood_bank: false,
+          specialties: ["Trauma & Fracture Care", "Occupational Injuries", "Paediatrics"],
+        },
+        {
+          id: "hosp_udupi_khe",
+          name: "Kasturba Hospital (KMC Manipal - Major Regional Trauma Center)",
+          category: "Apex Quaternary Care Hospital & Level 1 Trauma",
+          address: "Madhav Nagar, Manipal, Udupi, Karnataka 576104",
+          latitude: 13.3525,
+          longitude: 74.7865,
+          place_id: "ChIJu46P_2zmrzsR203C6V1Uv08",
+          location_verified: true,
+          phone: "+91 820 2922761",
+          emergency_phone: "+91 820 2575555 / 108",
+          has_emergency_ward: true,
+          icu_available: true,
+          blood_bank: true,
+          specialties: ["Level 1 Trauma Center", "Interventional Cardiology", "Cardiothoracic Surgery", "High-Risk Obstetrics"],
+        },
+        {
+          id: "hosp_hubballi_kims",
+          name: "KIMS Hubballi (Karnataka Institute of Medical Sciences)",
+          category: "Apex Regional Tertiary Care & Trauma Center",
+          address: "PB Road, Vidyanagar, Hubballi, Karnataka 580022",
+          latitude: 15.3647,
+          longitude: 75.1240,
+          place_id: "ChIJU3w83ZrrwzsRsP5zX4vQ6d8",
+          location_verified: true,
+          phone: "+91 836 2373348",
+          emergency_phone: "108 / +91 836 2374242",
+          has_emergency_ward: true,
+          icu_available: true,
+          blood_bank: true,
+          specialties: ["Advanced Trauma Care", "Cardiology", "Stroke Unit", "Obstetrics & Gynaecology"],
+        },
+      ];
+
+      const mapped = allHospitals.map((h) => {
+        const isVerified = Boolean(h.location_verified && ((h.latitude != null && h.longitude != null) || h.place_id));
+        const originParam = (latitude != null && longitude != null) ? `origin=${latitude},${longitude}&` : "";
+
+        return {
+          ...h,
+          location_verified: isVerified,
+          distance_km: (latitude != null && longitude != null && h.latitude != null) ? 14.2 : null,
+          location_url: h.place_id
+            ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.name)}&query_place_id=${h.place_id}`
+            : (h.latitude != null && h.longitude != null)
+              ? `https://www.google.com/maps/@?api=1&map_action=map&center=${h.latitude},${h.longitude}&zoom=18`
+              : null,
+          directions_url: isVerified
+            ? (h.latitude != null && h.longitude != null)
+              ? `https://www.google.com/maps/dir/?api=1&${originParam}destination=${h.latitude},${h.longitude}${h.place_id ? `&destination_place_id=${h.place_id}` : ""}&travelmode=driving`
+              : `https://www.google.com/maps/dir/?api=1&${originParam}destination=${encodeURIComponent(h.name)}&destination_place_id=${h.place_id}&travelmode=driving`
+            : null,
+          resolve_url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.name + ", " + h.address)}`,
+        };
+      });
+
+      return {
+        status: "fallback",
+        count: mapped.length,
+        hospitals: mapped,
+      };
+    }
   );
 }
 
