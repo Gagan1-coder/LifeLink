@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Emergency Contacts Collection
+    // Users can read/write their own contacts, or unauthenticated demo sessions have restricted access
+    match /users/{userId}/emergency_contacts/{contactId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      // Demo/public fallback for testing when auth is disabled
+      allow read, create, update: if request.resource.data.phone is string && request.resource.data.name is string;
+    }
+
+    // User Profiles Collection
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // SOS Emergency Events Collection
+    // Emergency alerts need high write availability
+    match /sos_events/{eventId} {
+      allow create: if request.resource.data.emergencyType is string
+                    && request.resource.data.status is string
+                    && request.resource.data.timestamp is timestamp;
+      allow read: if true; // Allows emergency coordination responders to read active events
+      allow update: if request.resource.data.status in [
+        'Activated', 'Location Pending', 'Contact Notification Pending',
+        'Notification Sent', 'Notification Failed', 'Assistance Requested', 'Resolved', 'Cancelled'
+      ];
+    }
+
+    // Hospital directory and resources (read-only for clients, managed by admin)
+    match /hospitals/{hospitalId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
